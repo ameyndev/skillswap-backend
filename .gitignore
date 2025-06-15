@@ -1,0 +1,52 @@
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.*
+
+# Runtime files
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Build output
+dist/
+build/
+tmp/
+temp/
+.cache/
+
+# Database
+dump/
+*.local
+
+# IDE and editor settings
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Optional: If you're using PM2
+pids/
+*.pid
+*.log
+
+# Optional: Coverage files (if you're using Jest or nyc)
+coverage/
+
+# Optional: MongoDB data dump (if you export data locally)
+dump/
