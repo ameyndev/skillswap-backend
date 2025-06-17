@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const skillRoutes = require('./routes/skillRoutes');
 
 const app = express();
 
@@ -20,6 +21,7 @@ mongoose.connect(process.env.MONGO_URI, {
 // Routes
 app.use('/user', userRoutes);
 app.use('/auth', authRoutes);
+app.use('/skills', skillRoutes);
 
 // Start server
 const PORT = process.env.PORT;
