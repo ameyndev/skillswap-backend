@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema({
   bio: String,
   profilePicture: String,
   location: String,
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
   createdAt: { type: Date, default: Date.now },
 });
 
