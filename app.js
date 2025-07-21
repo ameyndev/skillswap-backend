@@ -1,15 +1,18 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
 require('dotenv').config();
 
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const skillRoutes = require('./routes/skillRoutes');
+const skillRequestRoutes = require('./routes/skillRequestRoutes');
 
 const app = express();
 
 // Middleware
 app.use(express.json());
+app.use(cors());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
@@ -22,6 +25,7 @@ mongoose.connect(process.env.MONGO_URI, {
 app.use('/user', userRoutes);
 app.use('/auth', authRoutes);
 app.use('/skills', skillRoutes);
+app.use('/requests', skillRequestRoutes);
 
 // Start server
 const PORT = process.env.PORT;
