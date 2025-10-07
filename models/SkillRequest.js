@@ -4,6 +4,7 @@ const skillRequestSchema = new mongoose.Schema({
   fromUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // who sent
   toUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },   // who receives
   skill: { type: mongoose.Schema.Types.ObjectId, ref: 'UserSkill', required: true },
+  skillName: { type: String }, // Store the skill name for display
   description: { type: String },
   status: {
     type: String,

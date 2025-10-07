@@ -1,4 +1,53 @@
 const UserSkill = require('../models/UserSkill');
+const User = require('../models/User');
+
+// Search Skills
+exports.searchSkills = async (req, res) => {
+  const { query } = req.query;
+  
+  if (!query) {
+    return res.status(400).json({ message: 'Search query is required' });
+  }
+
+  try {
+    // Search through User.skills instead of UserSkill collection
+    const users = await User.find({
+      'skills.name': { $regex: query, $options: 'i' },
+      onboarded: true // Only search users who have completed onboarding
+    })
+    .select('username fullName email skills')
+    .lean();
+
+    // Transform the data to match the expected format
+    const skills = [];
+    users.forEach(user => {
+      user.skills.forEach(skill => {
+        if (skill.name.toLowerCase().includes(query.toLowerCase())) {
+          skills.push({
+            _id: skill._id || `${user._id}-${skill.name}`, // Create a unique ID
+            name: skill.name,
+            description: skill.description || '',
+            category: '', // Not available in User.skills
+            availability: [], // Not available in User.skills
+            createdBy: {
+              _id: user._id,
+              username: user.username,
+              email: user.email
+            },
+            createdAt: new Date() // Use current date as fallback
+          });
+        }
+      });
+    });
+
+    // Sort by skill name
+    skills.sort((a, b) => a.name.localeCompare(b.name));
+
+    res.status(200).json({ skills });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to search skills', error: error.message });
+  }
+};
 
 // Create Skill
 exports.createSkill = async (req, res) => {

@@ -1,19 +1,30 @@
 const SkillRequest = require('../models/SkillRequest');
-const UserSkill = require('../models/UserSkill');
+const User = require('../models/User');
 
-// 📤 Send a request
+// Send a request
 exports.sendRequest = async (req, res) => {
-  const { skillId, description } = req.body;
+  const { skillId, description, skillName, toUserId } = req.body;
   const fromUser = req.user.userId;
 
   try {
-    const skill = await UserSkill.findById(skillId);
-    if (!skill) return res.status(404).json({ message: 'Skill not found' });
+    // Find the user who has this skill
+    const toUser = await User.findById(toUserId);
+    if (!toUser) return res.status(404).json({ message: 'User not found' });
+
+    // Verify the user has the skill
+    const hasSkill = toUser.skills.some(skill => 
+      skill.name.toLowerCase() === skillName.toLowerCase()
+    );
+    
+    if (!hasSkill) {
+      return res.status(404).json({ message: 'Skill not found for this user' });
+    }
 
     const request = new SkillRequest({
       fromUser,
-      toUser: skill.createdBy,
-      skill: skillId,
+      toUser: toUserId,
+      skill: skillId, // This will be the generated ID from search
+      skillName: skillName, // Store the skill name for display
       description
     });
 
@@ -24,7 +35,7 @@ exports.sendRequest = async (req, res) => {
   }
 };
 
-// ✅ Accept or reject a request
+// Accept or reject a request
 exports.respondToRequest = async (req, res) => {
   const { requestId } = req.params;
   const { action } = req.body; // 'accept' or 'reject'
@@ -32,13 +43,17 @@ exports.respondToRequest = async (req, res) => {
 
   try {
     const request = await SkillRequest.findById(requestId);
-    if (!request) return res.status(404).json({ message: 'Request not found' });
+    if (!request) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
 
-    if (request.toUser.toString() !== userId)
+    if (request.toUser.toString() !== userId) {
       return res.status(403).json({ message: 'You are not authorized to respond to this request' });
+    }
 
-    if (request.status !== 'pending')
+    if (request.status !== 'pending') {
       return res.status(400).json({ message: 'Request already responded to' });
+    }
 
     if (action === 'accept') {
       request.status = 'accepted';
@@ -55,20 +70,31 @@ exports.respondToRequest = async (req, res) => {
   }
 };
 
-// 📄 View sent or received requests
+// View sent or received requests
 exports.getUserRequests = async (req, res) => {
   const userId = req.user.userId;
 
   try {
     const sent = await SkillRequest.find({ fromUser: userId })
-      .populate('skill')
-      .populate('toUser', 'username');
+      .populate('toUser', 'username')
+      .lean();
 
     const received = await SkillRequest.find({ toUser: userId })
-      .populate('skill')
-      .populate('fromUser', 'username');
+      .populate('fromUser', 'username')
+      .lean();
 
-    res.status(200).json({ sent, received });
+    // Use the stored skill name for display, with fallback for older requests
+    const processedSent = sent.map(request => ({
+      ...request,
+      skill: { name: request.skillName || 'Legacy Skill Request' }
+    }));
+
+    const processedReceived = received.map(request => ({
+      ...request,
+      skill: { name: request.skillName || 'Legacy Skill Request' }
+    }));
+
+    res.status(200).json({ sent: processedSent, received: processedReceived });
   } catch (err) {
     res.status(500).json({ error: 'Could not retrieve requests', detail: err.message });
   }

@@ -8,6 +8,15 @@ const userSchema = new mongoose.Schema({
   bio: String,
   profilePicture: String,
   location: String,
+  // Onboarding fields
+  onboarded: { type: Boolean, default: false },
+  skills: [
+    {
+      name: { type: String, required: true },
+      description: { type: String },
+      level: { type: Number, default: 0, min: 0 }
+    }
+  ],
   resetPasswordToken: String,
   resetPasswordExpires: Date,
   createdAt: { type: Date, default: Date.now },

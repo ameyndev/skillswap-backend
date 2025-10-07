@@ -13,6 +13,37 @@ router.get('/profile', authMiddleware, async (req, res) => {
   }
 });
 
+// Protected route for Onboarding - add initial skill and mark onboarded
+router.post('/onboard', authMiddleware, async (req, res) => {
+  try {
+    const { name, description } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ message: 'Skill name is required' });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // If user already onboarded, avoid duplicate onboarding
+    if (user.onboarded) {
+      return res.status(400).json({ message: 'User already onboarded' });
+    }
+
+    user.skills = user.skills || [];
+    user.skills.push({ name, description: description || '', level: 0 });
+    user.onboarded = true;
+    await user.save();
+
+    const safeUser = await User.findById(user._id).select('-passwordHash');
+    return res.status(200).json({ message: 'Onboarding complete', user: safeUser });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to complete onboarding' });
+  }
+});
+
 // GET all users
 router.get('/', async (req, res) => {
   try {
