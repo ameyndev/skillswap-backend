@@ -44,6 +44,60 @@ router.post('/onboard', authMiddleware, async (req, res) => {
   }
 });
 
+// Protected route to add additional skills after onboarding
+router.post('/skills', authMiddleware, async (req, res) => {
+  try {
+    const { name, description, level } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ message: 'Skill name is required' });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.skills = Array.isArray(user.skills) ? user.skills : [];
+    user.skills.push({ name: name.trim(), description: (description || '').trim(), level: Number(level) || 0 });
+    // If user adds a skill here and wasn't onboarded, mark onboarded
+    if (!user.onboarded) {
+      user.onboarded = true;
+    }
+    await user.save();
+
+    const safeUser = await User.findById(user._id).select('-passwordHash');
+    return res.status(200).json({ message: 'Skill added', user: safeUser });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to add skill' });
+  }
+});
+
+// Protected route to delete a skill from user's profile
+router.delete('/skills/:skillId', authMiddleware, async (req, res) => {
+  try {
+    const { skillId } = req.params;
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const before = Array.isArray(user.skills) ? user.skills.length : 0;
+    user.skills = (user.skills || []).filter(s => String(s._id) !== String(skillId));
+    const after = user.skills.length;
+
+    if (before === after) {
+      return res.status(404).json({ message: 'Skill not found' });
+    }
+
+    await user.save();
+    const safeUser = await User.findById(user._id).select('-passwordHash');
+    return res.status(200).json({ message: 'Skill deleted', user: safeUser });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to delete skill' });
+  }
+});
+
 // GET all users
 router.get('/', async (req, res) => {
   try {
