@@ -18,14 +18,17 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
 	cors: {
-		origin: "http://localhost:5173", // Frontend URL
+		origin: process.env.FRONTEND_URL || "http://localhost:5173",
 		methods: ["GET", "POST"],
 	},
 });
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+	origin: process.env.FRONTEND_URL || "http://localhost:5173",
+	credentials: true
+}));
 
 // Connect to MongoDB
 const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/skillswap";
@@ -169,5 +172,5 @@ io.on("connection", (socket) => {
 app.set("io", io);
 
 // Start server
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
