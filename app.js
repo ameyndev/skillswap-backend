@@ -16,18 +16,41 @@ const leaderboardRoutes = require("./routes/leaderboardRoutes");
 
 const app = express();
 const server = http.createServer(app);
+
+// Normalize FRONTEND_URL to ensure it has protocol
+const getFrontendUrl = () => {
+	let url = process.env.FRONTEND_URL || "http://localhost:5173";
+	// If URL doesn't start with http:// or https://, add https://
+	if (!url.startsWith("http://") && !url.startsWith("https://")) {
+		// Only add https:// if it's not localhost
+		if (!url.includes("localhost")) {
+			url = `https://${url}`;
+		} else {
+			url = `http://${url}`;
+		}
+	}
+	return url;
+};
+
+const frontendUrl = getFrontendUrl();
+console.log("Frontend URL configured:", frontendUrl);
+
 const io = socketIo(server, {
 	cors: {
-		origin: process.env.FRONTEND_URL || "http://localhost:5173",
-		methods: ["GET", "POST"],
+		origin: frontendUrl,
+		methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+		credentials: true,
+		allowedHeaders: ["Content-Type", "Authorization"],
 	},
 });
 
 // Middleware
 app.use(express.json());
 app.use(cors({
-	origin: process.env.FRONTEND_URL || "http://localhost:5173",
-	credentials: true
+	origin: frontendUrl,
+	credentials: true,
+	methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+	allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
 // Connect to MongoDB
