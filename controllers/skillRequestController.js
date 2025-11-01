@@ -99,3 +99,67 @@ exports.getUserRequests = async (req, res) => {
     res.status(500).json({ error: 'Could not retrieve requests', detail: err.message });
   }
 };
+
+// Get users connected through skill requests
+exports.getConnectedUsers = async (req, res) => {
+  const userId = req.user.userId;
+
+  try {
+    // Get all skill requests where current user is involved (sent or received)
+    // Only include accepted requests as "connected" users
+    const skillRequests = await SkillRequest.find({
+      $or: [
+        { fromUser: userId },
+        { toUser: userId }
+      ],
+      status: 'accepted'
+    })
+      .populate('fromUser', 'username fullName _id')
+      .populate('toUser', 'username fullName _id')
+      .lean();
+
+    // Extract unique connected users and include skill request info
+    const connectedUsersMap = new Map();
+
+    skillRequests.forEach(request => {
+      // Compare user IDs - with .lean(), _id is already an ObjectId
+      const fromUserIdStr = request.fromUser._id.toString();
+      const toUserIdStr = request.toUser._id.toString();
+      const currentUserIdStr = userId.toString();
+      
+      const otherUser = fromUserIdStr === currentUserIdStr 
+        ? request.toUser 
+        : request.fromUser;
+
+      // Skip if user info is missing
+      if (!otherUser || !otherUser.username || !otherUser.fullName) {
+        return;
+      }
+
+      const userIdStr = otherUser._id.toString();
+      
+      if (!connectedUsersMap.has(userIdStr)) {
+        connectedUsersMap.set(userIdStr, {
+          _id: otherUser._id,
+          username: otherUser.username,
+          fullName: otherUser.fullName,
+          skillRequests: []
+        });
+      }
+
+      // Add skill request info
+      connectedUsersMap.get(userIdStr).skillRequests.push({
+        _id: request._id,
+        skillName: request.skillName || 'Unknown Skill',
+        description: request.description,
+        createdAt: request.createdAt
+      });
+    });
+
+    const connectedUsers = Array.from(connectedUsersMap.values());
+
+    res.status(200).json(connectedUsers);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not retrieve connected users', detail: err.message });
+  }
+};
